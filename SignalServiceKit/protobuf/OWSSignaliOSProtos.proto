@@ -6,9 +6,7 @@
 
 package signalios;
 
-// Signal-iOS
-import "objectivec-descriptor.proto";
-option (google.protobuf.objectivec_file_options).class_prefix = "OWSSignaliOSProtos";
+syntax = "proto2";
 
 message BackupSnapshot
 {
