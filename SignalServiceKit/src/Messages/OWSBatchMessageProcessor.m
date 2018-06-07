@@ -19,6 +19,7 @@
 #import "TSYapDatabaseObject.h"
 #import "TextSecureKitEnv.h"
 #import "Threading.h"
+#import <SignalServiceKit/SignalServiceKit-Swift.h>
 #import <YapDatabase/YapDatabaseAutoView.h>
 #import <YapDatabase/YapDatabaseConnection.h>
 #import <YapDatabase/YapDatabaseTransaction.h>
@@ -40,7 +41,8 @@ NS_ASSUME_NONNULL_BEGIN
                        plaintextData:(NSData *_Nullable)plaintextData NS_DESIGNATED_INITIALIZER;
 - (nullable instancetype)initWithCoder:(NSCoder *)coder NS_DESIGNATED_INITIALIZER;
 - (instancetype)initWithUniqueId:(NSString *_Nullable)uniqueId NS_UNAVAILABLE;
-- (OWSSignalServiceProtosEnvelope *)envelopeProto;
+
+@property (nonatomic, readonly, nullable) SSKEnvelope *envelope;
 
 @end
 
@@ -74,9 +76,18 @@ NS_ASSUME_NONNULL_BEGIN
     return [super initWithCoder:coder];
 }
 
-- (OWSSignalServiceProtosEnvelope *)envelopeProto
+- (nullable SSKEnvelope *)envelope
 {
-    return [OWSSignalServiceProtosEnvelope parseFromData:self.envelopeData];
+    NSError *error;
+    SSKEnvelope *result;
+    result = [[SSKEnvelope alloc] initWithData:self.envelopeData error:&error];
+    
+    if (error) {
+        OWSFail(@"%@ paring SSKEnvelope failed with error: %@", self.logTag, error);
+        return nil;
+    }
+    
+    return result;
 }
 
 @end
@@ -379,7 +390,7 @@ NSString *const OWSMessageContentJobFinderExtensionGroup = @"OWSMessageContentJo
     [self.dbConnection readWriteWithBlock:^(YapDatabaseReadWriteTransaction *transaction) {
         for (OWSMessageContentJob *job in jobs) {
             @try {
-                [self.messagesManager processEnvelope:job.envelopeProto
+                [self.messagesManager processEnvelope:job.envelope
                                         plaintextData:job.plaintextData
                                           transaction:transaction];
             } @catch (NSException *exception) {
