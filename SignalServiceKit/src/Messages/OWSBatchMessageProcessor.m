@@ -79,11 +79,10 @@ NS_ASSUME_NONNULL_BEGIN
 - (nullable SSKEnvelope *)envelope
 {
     NSError *error;
-    SSKEnvelope *result;
-    result = [[SSKEnvelope alloc] initWithData:self.envelopeData error:&error];
-    
+    SSKEnvelope *_Nullable result = [[SSKEnvelope alloc] initWithData:self.envelopeData error:&error];
+
     if (error) {
-        OWSFail(@"%@ paring SSKEnvelope failed with error: %@", self.logTag, error);
+        OWSProdLogAndFail(@"%@ paring SSKEnvelope failed with error: %@", self.logTag, error);
         return nil;
     }
     
@@ -389,16 +388,27 @@ NSString *const OWSMessageContentJobFinderExtensionGroup = @"OWSMessageContentJo
     NSMutableArray<OWSMessageContentJob *> *processedJobs = [NSMutableArray new];
     [self.dbConnection readWriteWithBlock:^(YapDatabaseReadWriteTransaction *transaction) {
         for (OWSMessageContentJob *job in jobs) {
-            @try {
-                [self.messagesManager processEnvelope:job.envelope
-                                        plaintextData:job.plaintextData
-                                          transaction:transaction];
-            } @catch (NSException *exception) {
-                OWSProdLogAndFail(@"%@ Received an invalid envelope: %@", self.logTag, exception.debugDescription);
+
+            void (^reportFailure)(YapDatabaseReadWriteTransaction *transaction) = ^(
+                YapDatabaseReadWriteTransaction *transaction) {
                 // TODO: Add analytics.
                 TSErrorMessage *errorMessage = [TSErrorMessage corruptedMessageInUnknownThread];
                 [[TextSecureKitEnv sharedEnv].notificationsManager notifyUserForThreadlessErrorMessage:errorMessage
                                                                                            transaction:transaction];
+            };
+
+            @try {
+                SSKEnvelope *_Nullable envelope = job.envelope;
+                if (!envelope) {
+                    reportFailure(transaction);
+                } else {
+                    [self.messagesManager processEnvelope:envelope
+                                            plaintextData:job.plaintextData
+                                              transaction:transaction];
+                }
+            } @catch (NSException *exception) {
+                OWSProdLogAndFail(@"%@ Received an invalid envelope: %@", self.logTag, exception.debugDescription);
+                reportFailure(transaction);
             }
             [processedJobs addObject:job];
 
