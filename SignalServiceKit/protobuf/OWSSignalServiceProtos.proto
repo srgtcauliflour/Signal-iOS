@@ -6,8 +6,7 @@
 
 syntax = "proto2";
 
-package signalservice;
-
+package SignalService;
 
 option java_package = "org.whispersystems.signalservice.internal.push";
 option java_outer_classname = "SignalServiceProtos";

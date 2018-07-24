@@ -6,17 +6,17 @@ PROTOC=protoc \
 all: signal_service_proto provisioning_protos fingerprint_protos websocket_protos
 
 signal_service_proto: OWSSignalServiceProtos.proto
-	$(PROTOC) --swift_out=../src/Messages/ \
+	$(PROTOC) --swift_out=../src/Protos/ \
 		OWSSignalServiceProtos.proto
 
 provisioning_protos: OWSProvisioningProtos.proto
-	$(PROTOC) --swift_out=../src/Devices/ \
+	$(PROTOC) --swift_out=../src/Protos/ \
 		OWSProvisioningProtos.proto
 
 fingerprint_protos: OWSFingerprintProtos.proto
-	$(PROTOC) --swift_out=../src/Security/ \
+	$(PROTOC) --swift_out=../src/Protos/ \
 		OWSFingerprintProtos.proto
 
 websocket_protos: WebSocketResources.proto
-	$(PROTOC) --swift_out=../src/Network/WebSockets/ \
+	$(PROTOC) --swift_out=../src/Protos/ \
 		WebSocketResources.proto
